@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YT Downloader – MP3 / MP4</title>
+  <meta name="description" content="Download YouTube videos as MP3 or MP4. Fast, free, no ads." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0d0d;
+      --surface: #161616;
+      --border: #2a2a2a;
+      --red: #ff2d2d;
+      --red-dim: #cc0000;
+      --text: #f0f0f0;
+      --muted: #888;
+      --radius: 14px;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px 80px;
+    }
+
+    /* ── Logo / Title ── */
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 36px;
+    }
+
+    .brand-icon {
+      width: 48px;
+      height: 48px;
+      background: var(--red);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .brand-icon svg { width: 26px; height: 26px; fill: #fff; }
+
+    .brand h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .brand p {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    /* ── Card ── */
+    .card {
+      width: 100%;
+      max-width: 560px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 24px;
+    }
+
+    /* ── Input row ── */
+    .input-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .input-row input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 13px 16px;
+      color: var(--text);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .input-row input:focus { border-color: var(--red); }
+    .input-row input::placeholder { color: var(--muted); }
+
+    .btn-fetch {
+      background: var(--red);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 13px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    .btn-fetch:hover { background: #ff4444; }
+    .btn-fetch:active { transform: scale(0.97); }
+    .btn-fetch:disabled { background: #444; cursor: not-allowed; }
+
+    /* ── Format tabs ── */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s;
+      text-align: center;
+    }
+
+    .tab.active {
+      border-color: var(--red);
+      color: var(--red);
+      background: rgba(255,45,45,0.08);
+    }
+
+    /* ── Quality selector ── */
+    .quality-row {
+      margin-top: 14px;
+      display: none;
+    }
+
+    .quality-row.visible { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .q-btn {
+      padding: 7px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .q-btn.active {
+      border-color: #3d9dff;
+      color: #3d9dff;
+      background: rgba(61,157,255,0.08);
+    }
+
+    /* ── Status / Result ── */
+    .status {
+      margin-top: 20px;
+      min-height: 24px;
+      font-size: 14px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .status.error { color: #ff6b6b; }
+    .status.success { color: #4ade80; }
+
+    /* ── Spinner ── */
+    .spinner {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      border: 2px solid var(--border);
+      border-top-color: var(--red);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Download button ── */
+    .btn-download {
+      display: block;
+      width: 100%;
+      margin-top: 16px;
+      padding: 14px;
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+      text-decoration: none;
+      transition: filter 0.2s, transform 0.1s;
+    }
+
+    .btn-download:hover { filter: brightness(1.1); }
+    .btn-download:active { transform: scale(0.98); }
+
+    /* ── Thumbnail ── */
+    .thumb-wrap {
+      margin-top: 18px;
+      border-radius: 10px;
+      overflow: hidden;
+      display: none;
+    }
+
+    .thumb-wrap.visible { display: block; }
+
+    .thumb-wrap img {
+      width: 100%;
+      display: block;
+      border-radius: 10px;
+    }
+
+    .thumb-title {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 8px;
+      text-align: center;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* ── Divider ── */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 22px 0;
+    }
+
+    /* ── Notice ── */
+    .notice {
+      font-size: 12px;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.6;
+      margin-top: 24px;
+      max-width: 560px;
+    }
+
+    .notice a { color: #3d9dff; text-decoration: none; }
+
+    /* ── Footer ── */
+    footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+      padding: 10px 0;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="brand">
+    <div class="brand-icon">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-2.75 12.63 12.63 0 0 0-8.45 3.77 12.78 12.78 0 0 0-3.77 8.45 4.83 4.83 0 0 1 2.75 3.77 12.63 12.63 0 0 0 8.45-3.77 12.78 12.78 0 0 0 3.79-9.47zM12 15.5l-4-4h3V8h2v3.5h3l-4 4z"/>
+      </svg>
+    </div>
+    <div>
+      <h1>YT Downloader</h1>
+      <p>MP3 &amp; MP4 — no ads, no tracking</p>
+    </div>
+  </div>
+
+  <div class="card">
+
+    <!-- URL Input -->
+    <div class="input-row">
+      <input type="url" id="urlInput" placeholder="Paste YouTube URL here…" autocomplete="off" />
+      <button class="btn-fetch" id="fetchBtn" onclick="handleFetch()">Download</button>
+    </div>
+
+    <!-- Format Tabs -->
+    <div class="tabs">
+      <button class="tab active" id="tab-mp3" onclick="setFormat('mp3')">🎵 MP3 (Audio)</button>
+      <button class="tab" id="tab-mp4" onclick="setFormat('mp4')">🎬 MP4 (Video)</button>
+    </div>
+
+    <!-- Quality (MP4 only) -->
+    <div class="quality-row" id="qualityRow">
+      <button class="q-btn active" onclick="setQuality(this, '1080')">1080p</button>
+      <button class="q-btn" onclick="setQuality(this, '720')">720p</button>
+      <button class="q-btn" onclick="setQuality(this, '480')">480p</button>
+      <button class="q-btn" onclick="setQuality(this, '360')">360p</button>
+    </div>
+
+    <!-- Thumbnail -->
+    <div class="thumb-wrap" id="thumbWrap">
+      <img id="thumbImg" src="" alt="thumbnail" />
+      <p class="thumb-title" id="thumbTitle"></p>
+    </div>
+
+    <!-- Status -->
+    <div class="status" id="status"></div>
+
+    <!-- Download Link -->
+    <a class="btn-download" id="dlBtn" href="#" target="_blank" rel="noopener" style="display:none">
+      ⬇ Click to Download
+    </a>
+
+  </div>
+
+  <p class="notice">
+    Powered by <a href="https://cobalt.tools" target="_blank" rel="noopener">cobalt.tools</a> open-source API.
+    Only download content you have the right to download.
+    Respect copyright and YouTube's Terms of Service.
+  </p>
+
+  <footer>YT Downloader &nbsp;·&nbsp; Static, open-source, no server</footer>
+
+  <script>
+    const COBALT_API = 'https://api.cobalt.tools';
+
+    let currentFormat = 'mp3';
+    let currentQuality = '1080';
+
+    function setFormat(fmt) {
+      currentFormat = fmt;
+      document.getElementById('tab-mp3').classList.toggle('active', fmt === 'mp3');
+      document.getElementById('tab-mp4').classList.toggle('active', fmt === 'mp4');
+      document.getElementById('qualityRow').classList.toggle('visible', fmt === 'mp4');
+      resetResult();
+    }
+
+    function setQuality(btn, q) {
+      currentQuality = q;
+      document.querySelectorAll('.q-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
+    function resetResult() {
+      document.getElementById('dlBtn').style.display = 'none';
+      document.getElementById('status').textContent = '';
+      document.getElementById('status').className = 'status';
+      document.getElementById('thumbWrap').classList.remove('visible');
+    }
+
+    function setStatus(msg, type = '') {
+      const el = document.getElementById('status');
+      el.innerHTML = msg;
+      el.className = 'status ' + type;
+    }
+
+    function extractVideoId(url) {
+      try {
+        const u = new URL(url);
+        if (u.hostname.includes('youtu.be')) return u.pathname.slice(1).split('?')[0];
+        return u.searchParams.get('v');
+      } catch { return null; }
+    }
+
+    function showThumbnail(url) {
+      const id = extractVideoId(url);
+      if (!id) return;
+      const img = document.getElementById('thumbImg');
+      img.src = `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
+      document.getElementById('thumbWrap').classList.add('visible');
+    }
+
+    async function handleFetch() {
+      const url = document.getElementById('urlInput').value.trim();
+      if (!url) { setStatus('Please paste a YouTube URL.', 'error'); return; }
+
+      resetResult();
+      setStatus('<span class="spinner"></span>Fetching download link…');
+      document.getElementById('fetchBtn').disabled = true;
+
+      showThumbnail(url);
+
+      try {
+        const body = {
+          url,
+          downloadMode: currentFormat === 'mp3' ? 'audio' : 'auto',
+          ...(currentFormat === 'mp4' && { videoQuality: currentQuality }),
+          ...(currentFormat === 'mp3' && { audioFormat: 'mp3', audioBitrate: '320' }),
+          filenameStyle: 'pretty',
+        };
+
+        const res = await fetch(COBALT_API, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify(body),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok || data.status === 'error') {
+          const msg = data?.error?.code || data?.text || 'Unknown error from API.';
+          setStatus('❌ ' + msg, 'error');
+          return;
+        }
+
+        if (data.status === 'redirect' || data.status === 'tunnel') {
+          const dlBtn = document.getElementById('dlBtn');
+          dlBtn.href = data.url;
+          dlBtn.style.display = 'block';
+          setStatus('✅ Ready! Click the button below to download.', 'success');
+        } else if (data.status === 'picker') {
+          // Multiple streams (e.g. separate audio+video) — offer first
+          const dlBtn = document.getElementById('dlBtn');
+          dlBtn.href = data.picker[0].url;
+          dlBtn.style.display = 'block';
+          setStatus('✅ Ready! Click the button below to download.', 'success');
+        } else {
+          setStatus('⚠️ Unexpected response. Try again.', 'error');
+        }
+
+      } catch (err) {
+        setStatus('❌ Network error: ' + err.message, 'error');
+      } finally {
+        document.getElementById('fetchBtn').disabled = false;
+      }
+    }
+
+    // Allow Enter key
+    document.getElementById('urlInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') handleFetch();
+    });
+  </script>
+
+</body>
+</html>
